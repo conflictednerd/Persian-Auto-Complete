@@ -136,6 +136,7 @@ class BertAutoComplete(AutoComplete):
             learning_rate=args.ft_lr,
             weight_decay=args.ft_wd,
         )
+        print(f'Training will be done on {training_args.device}.')
         # We also need a data_collator to randomly mask some words for the MLM task.
         data_collator = DataCollatorForLanguageModeling(
             tokenizer=self.tokenizer, mlm_probability=args.ft_mlm_prob)
