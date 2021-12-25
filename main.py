@@ -23,21 +23,21 @@ if __name__ == '__main__':
                         help='directory used for loading and saving models')
     parser.add_argument('--logging_dir', default='./logs',
                         help='directory used for logging fine-tunning process')
-    parser.add_argument('--test_size', default=.1,
+    parser.add_argument('--test_size', default=.1, type=float,
                         help='portion of data that should be used for testing (validation during fine-tuning)')
-    parser.add_argument('--num_proc', default=4,
+    parser.add_argument('--num_proc', default=1, type=int,
                         help='number of processes (for now only used in tokenizing dataset)')
-    parser.add_argument('--seq_len', default=128,
-                        help='length of each sequence in a batch used in training the model')
-    parser.add_argument('--ft_epochs', default=3,
+    parser.add_argument('--seq_len', default=256, type=int,
+                        help='length of each sequence in a batch used in training the model')  # Default was 128?
+    parser.add_argument('--ft_epochs', default=3, type=int,
                         help='number of epochs of fine-tunning')
-    parser.add_argument('--ft_batch_size', default=16,
+    parser.add_argument('--ft_batch_size', default=32, type=int,
                         help='batch-size used in fine-tunning')  # Huggingface default was 8
-    parser.add_argument('--ft_lr', default=2e-5,
+    parser.add_argument('--ft_lr', default=2e-5, type=float,
                         help='learning rate used in fine-tunning')
-    parser.add_argument('--ft_wd', default=1e-2,
+    parser.add_argument('--ft_wd', default=1e-2, type=float,
                         help='weight decay coefficient used in fine-tunning')
-    parser.add_argument('--ft_mlm_prob', default=0.15,
+    parser.add_argument('--ft_mlm_prob', default=0.15, type=float,
                         help='probability of masking a word during fine-tunning')
 
     args = parser.parse_args()

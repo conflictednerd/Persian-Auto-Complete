@@ -2,6 +2,7 @@
 import math
 import os
 from typing import Dict, List, Tuple
+from multiprocess import set_start_method
 
 import torch
 from datasets import load_dataset
@@ -20,6 +21,8 @@ class BertAutoComplete(AutoComplete):
         Set args.models_dir = "./models_dir/" if the model was saved in the models_dir directory before.
         '''
         super().__init__()
+        # so that multi-processing with cuda is possible
+        set_start_method('spawn')
 
         self.MODEL_NAME = args.transformer_model_name
         self.MODEL_DIR = args.models_dir
