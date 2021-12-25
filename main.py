@@ -31,6 +31,8 @@ if __name__ == '__main__':
                         help='length of each sequence in a batch used in training the model')
     parser.add_argument('--ft_epochs', default=3,
                         help='number of epochs of fine-tunning')
+    parser.add_argument('--ft_batch_size', default=16,
+                        help='batch-size used in fine-tunning')  # Huggingface default was 8
     parser.add_argument('--ft_lr', default=2e-5,
                         help='learning rate used in fine-tunning')
     parser.add_argument('--ft_wd', default=1e-2,

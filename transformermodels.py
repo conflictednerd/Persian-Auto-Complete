@@ -17,12 +17,12 @@ from autocomplete import AutoComplete
 class BertAutoComplete(AutoComplete):
     def __init__(self, args):
         '''
-        Set args.model_dir = "./models_dir/" if the model was saved in the models_dir directory before.
+        Set args.models_dir = "./models_dir/" if the model was saved in the models_dir directory before.
         '''
         super().__init__()
 
         self.MODEL_NAME = args.transformer_model_name
-        self.MODEL_DIR = args.model_dir
+        self.MODEL_DIR = args.models_dir
         self.TRAIN_DATA_PATH = args.train_data_path
         self.CLEANIFY = args.cleanify
         self.DEVICE = args.device or torch.device(
@@ -101,7 +101,7 @@ class BertAutoComplete(AutoComplete):
             f.write('\n'.join(test))
 
         dataset = load_dataset('text', data_files={
-                               'train': 'train.txt', 'test': 'test.txt'})
+                               'train': os.path.join(self.TRAIN_DATA_PATH, 'train.txt'), 'test': os.path.join(self.TRAIN_DATA_PATH, 'test.txt')})
         # This will tokenize our dataset
         tokenized_dataset = dataset.map(lambda x: self.tokenizer(
             x['text']), batched=True, num_proc=args.num_proc, remove_columns=['text'])
@@ -156,6 +156,7 @@ class BertAutoComplete(AutoComplete):
             f'{self.MODEL_NAME}-finetuned',
             evaluation_strategy='epoch',
             num_train_epochs=args.ft_epochs,
+            per_device_train_batch_size=args.ft_batch_size,
             learning_rate=args.ft_lr,
             weight_decay=args.ft_wd,
             logging_dir=args.logging_dir,
