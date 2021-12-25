@@ -47,16 +47,39 @@ class BertAutoComplete(AutoComplete):
         self.tokenizer.save_pretrained(dir_path)
         self.model.save_pretrained(dir_path)
 
-    def complete(self, sent: str):
-        return sent
+    def complete(self, sent: str, num_suggestions: int = 5) -> List[str]:
+        '''
+        The sentence must contain exactly one incomplete word determined using three consecutive dots(...)
+        Examples:
+        "This sentence should be com..."
+        "این جمله باید کامل ش..."
+        '''
+        # Find the incomplete word and replace it with [MASK]
+        incomplete_word = ''
+        words = sent.split(' ')
+        for word in words:
+            if '...' in word:
+                incomplete_word = word[:-3]
+                break
+        words = ['[MASK]' if '...' in word else word for word in words]
+        sent = ' '.join(words)
+        suggestions = self.topk(sent, k=100)
+        suggestions = [(word, score, self.prefix_distance(
+            word, incomplete_word)) for word, score in suggestions]
+        # Sort by prefix distance first and then score
+        suggestions.sort(key=lambda x: x[1] + 1000000*x[2], reverse=True)
+        suggestions = suggestions[:num_suggestions]
+        suggestions = [word for word, score, d in suggestions]
+        return suggestions
 
-    def topk(self, sent: str, k: int = 10):
+    def topk(self, sent: str, k: int = 10) -> List:
         mask_idx = self.tokenizer.tokenize(sent).index('[MASK]') + 1
         out = self.model(torch.IntTensor(self.tokenizer.encode(
             sent), device=self.DEVICE).unsqueeze(0))
         out = out['logits'].squeeze(0)[mask_idx, :].cpu()
-        _, out = out.topk(k)
-        return self.tokenizer.decode(out)
+        scores, tokens = out.topk(k)
+        # TODO: check output type(tensor?)
+        return list(zip(self.tokenizer.decode(tokens), scores))
 
     def create_dataset(self, args):
         '''
@@ -135,6 +158,7 @@ class BertAutoComplete(AutoComplete):
             num_train_epochs=args.ft_epochs,
             learning_rate=args.ft_lr,
             weight_decay=args.ft_wd,
+            logging_dir=args.logging_dir,
         )
         print(f'Training will be done on {training_args.device}.')
         # We also need a data_collator to randomly mask some words for the MLM task.

@@ -21,6 +21,8 @@ if __name__ == '__main__':
                         default=False, help='use if training data needs cleaning')
     parser.add_argument('--models_dir', default='./models_dir/',
                         help='directory used for loading and saving models')
+    parser.add_argument('--logging_dir', default='./logs',
+                        help='directory used for logging fine-tunning process')
     parser.add_argument('--test_size', default=.1,
                         help='portion of data that should be used for testing (validation during fine-tuning)')
     parser.add_argument('--num_proc', default=4,

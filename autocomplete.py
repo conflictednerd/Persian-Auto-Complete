@@ -2,6 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import List
 
+import editdistance
 import hazm
 
 
@@ -64,7 +65,7 @@ class AutoComplete(ABC):
         pass
 
     @abstractmethod
-    def complete(self, sent: str):
+    def complete(self, sent: str, num_suggestions: int = 5):
         pass
 
     @abstractmethod
@@ -86,11 +87,20 @@ class AutoComplete(ABC):
 
         return string
 
-    def edit_distance(self, t1, t2):
-        # TODO: Use edit distance
-        return 0 if t1 == t2 else 1
+    def edit_distance(self, t1, t2, mode=1):
+        '''
+        mode = 0 -> Exact matching
+        mode = 1 -> Lev distance
+        '''
+        if mode == 0:
+            return 0 if t1 == t2 else 1
+        elif mode == 1:
+            return editdistance.eval(t1, t2)
+        else:
+            raise ValueError(
+                f'Autocomplete.edit_distance does not support mode = {mode}')
 
-    def prefix_distance(self, string, prefix):
+    def prefix_distance(self, string: str, prefix: str):
         '''
         Given a string and a prefix, computes how similar the beginning of string is to prefix
         '''
