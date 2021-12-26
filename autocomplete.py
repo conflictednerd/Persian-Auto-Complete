@@ -104,5 +104,4 @@ class AutoComplete(ABC):
         '''
         Given a string and a prefix, computes how similar the beginning of string is to prefix
         '''
-        assert len(string) >= len(prefix)
         return self.edit_distance(string[:len(prefix)], prefix)

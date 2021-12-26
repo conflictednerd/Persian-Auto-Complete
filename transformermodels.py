@@ -66,23 +66,22 @@ class BertAutoComplete(AutoComplete):
                 break
         words = ['[MASK]' if '...' in word else word for word in words]
         sent = ' '.join(words)
-        suggestions = self.topk(sent, k=100)
+        suggestions = self.topk(sent, k=200)
         suggestions = [(word, score, self.prefix_distance(
             word, incomplete_word)) for word, score in suggestions]
         # Sort by prefix distance first and then score
-        suggestions.sort(key=lambda x: x[1] + 1000000*x[2], reverse=True)
+        suggestions.sort(key=lambda x: x[1] - 1000000*x[2], reverse=True)
         suggestions = suggestions[:num_suggestions]
         suggestions = [word for word, score, d in suggestions]
         return suggestions
 
     def topk(self, sent: str, k: int = 10) -> List:
         mask_idx = self.tokenizer.tokenize(sent).index('[MASK]') + 1
-        out = self.model(torch.IntTensor(self.tokenizer.encode(
-            sent), device=self.DEVICE).unsqueeze(0))
+        out = self.model(torch.tensor(self.tokenizer.encode(sent)).int().to(self.DEVICE).unsqueeze(0))
         out = out['logits'].squeeze(0)[mask_idx, :].cpu()
         scores, tokens = out.topk(k)
         # TODO: check output type(tensor?)
-        return list(zip(self.tokenizer.decode(tokens), scores))
+        return [(self.tokenizer.decode(tokens[i]), scores[i]) for i in range(len(scores))]
 
     def create_dataset(self, args):
         '''
