@@ -19,12 +19,16 @@ if __name__ == '__main__':
                         help='directory where training data resides under the name "data.txt"')
     parser.add_argument('--cleanify', action='store_true',
                         default=False, help='use if training data needs cleaning')
+    parser.add_argument('--freeze_encoder', action='store_true', default=False,
+                        help='freezes the encoder and only fine-tunes the MLM head')
     parser.add_argument('--models_dir', default='./models_dir/',
                         help='directory used for loading and saving models')
     parser.add_argument('--logging_dir', default='./logs',
                         help='directory used for logging fine-tunning process')
     parser.add_argument('--test_size', default=.1, type=float,
                         help='portion of data that should be used for testing (validation during fine-tuning)')
+    parser.add_argument('--data_ratio', default=.05, type=float,
+                        help='ratio of data in data.txt that will be used in training')
     parser.add_argument('--num_proc', default=1, type=int,
                         help='number of processes (for now only used in tokenizing dataset)')
     parser.add_argument('--seq_len', default=256, type=int,
