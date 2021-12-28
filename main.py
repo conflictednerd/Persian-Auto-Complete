@@ -49,6 +49,8 @@ if __name__ == '__main__':
                         help='n for ngram model')
     parser.add_argument('--k', default=1, type=float,
                         help='k for add-k estimation (smoothing)')
+    parser.add_argument('--ngram_mode', default='bo',
+                        help='bo for back off, or else interpolate.')
 
     args = parser.parse_args()
     pprint(f'Arguments are:{vars(args)}')  # For debugging
@@ -58,7 +60,8 @@ if __name__ == '__main__':
         autocomplete = NGramAutoComplete(args)
 
     if args.train:
-        autocomplete.train(args)
+        if args.model == 'bert':  # ngram will automatically train if it needs to, as specified in the __init__ function
+            autocomplete.train(args)
     else:
         print('No Training')
 
