@@ -34,9 +34,12 @@ class BertAutoComplete(AutoComplete):
             self.MODEL_DIR if args.load else self.MODEL_NAME)
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.MODEL_DIR if args.load else self.MODEL_NAME)
-        # TODO: .to(device) ? is it enough? how will loading and saving using different devices affect saving and loading
         self.model = AutoModelForMaskedLM.from_pretrained(
             self.MODEL_DIR if args.load else self.MODEL_NAME).to(self.DEVICE)
+        # Only fine tune the MLM head:
+        if args.freeze_encoder:
+            for param in self.model.base_model.parameters():
+                param.requires_grad = False
 
     def load(self, dir_path: str = None):
         dir_path = dir_path or self.MODEL_DIR
@@ -93,6 +96,7 @@ class BertAutoComplete(AutoComplete):
         with open(os.path.join(self.TRAIN_DATA_PATH, 'data.txt'), 'r', encoding='utf-8') as f:
             s += self.clean(f.read()) if self.CLEANIFY else f.read()
         parags = s.split('\n')
+        parags, _ = train_test_split(parags, test_size=1-args.data_ratio)
         train, test = train_test_split(parags, test_size=args.test_size)
 
         # Train and test data after the split will be saved for further analysis in future
