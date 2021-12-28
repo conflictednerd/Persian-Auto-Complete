@@ -12,7 +12,7 @@ if __name__ == '__main__':
                         default='HooshvareLab/albert-fa-zwnj-base-v2')
     parser.add_argument('--load_model', action='store_true', default=False,
                         help='use if you want to load the model; otherwise the model will be downloaded')
-    parser.add_argument('--load_data', default=False,
+    parser.add_argument('--load_data', action='store_true', default=False,
                         help='to load the the previously saved train and test data.')
     parser.add_argument('--device', default=None)
     parser.add_argument('--train', action='store_true', default=False,

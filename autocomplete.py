@@ -69,7 +69,7 @@ class AutoComplete(ABC):
         pass
 
     @abstractmethod
-    def topk_(self, sent: str, k_=10) -> List:
+    def topk(self, sent: str, k_=10) -> List:
         pass
 
     @abstractmethod
