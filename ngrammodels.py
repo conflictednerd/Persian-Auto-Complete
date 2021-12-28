@@ -40,14 +40,14 @@ class NGramAutoComplete(AutoComplete):
         self.n = args.n
         self.mode = args.ngram_mode
         self.vocab = dict()
-        if not args.load:
+        if not args.load_data:
             self.create_dataset(args)
         else:
             self.load_prepared_data()
 
         self.unigrams = self.create_vocab(obj='train')
         self.vocab = nltk.FreqDist(self.unigrams)
-        self.model = self.train() if args.train else self.load()
+        self.model = self.train() if args.train else self.load() #if we don't want to train, we want to load the model, right?
 
         if args.train:
             self.save()

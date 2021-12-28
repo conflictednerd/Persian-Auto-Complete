@@ -10,8 +10,10 @@ if __name__ == '__main__':
                         help='type of autocomplete model: bert or ngram')
     parser.add_argument('--transformer_model_name',
                         default='HooshvareLab/albert-fa-zwnj-base-v2')
-    parser.add_argument('--load', action='store_true', default=False,
+    parser.add_argument('--load_model', action='store_true', default=False,
                         help='use if you want to load the model; otherwise the model will be downloaded')
+    parser.add_argument('--load_data', default=False,
+                        help='to load the the previously saved train and test data.')
     parser.add_argument('--device', default=None)
     parser.add_argument('--train', action='store_true', default=False,
                         help='use if you want to fine-tune the model')
@@ -43,6 +45,10 @@ if __name__ == '__main__':
                         help='weight decay coefficient used in fine-tunning')
     parser.add_argument('--ft_mlm_prob', default=0.15, type=float,
                         help='probability of masking a word during fine-tunning')
+    parser.add_argument('--n', default=3, type=int,
+                        help='n for ngram model')
+    parser.add_argument('--k', default=1, type=float,
+                        help='k for add-k estimation (smoothing)')
 
     args = parser.parse_args()
     pprint(f'Arguments are:{vars(args)}')  # For debugging

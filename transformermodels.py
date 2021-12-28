@@ -31,11 +31,11 @@ class BertAutoComplete(AutoComplete):
         self.DEVICE = args.device or torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
         self.config = AutoConfig.from_pretrained(
-            self.MODEL_DIR if args.load else self.MODEL_NAME)
+            self.MODEL_DIR if args.load_model else self.MODEL_NAME)
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.MODEL_DIR if args.load else self.MODEL_NAME)
+            self.MODEL_DIR if args.load_model else self.MODEL_NAME)
         self.model = AutoModelForMaskedLM.from_pretrained(
-            self.MODEL_DIR if args.load else self.MODEL_NAME).to(self.DEVICE)
+            self.MODEL_DIR if args.load_model else self.MODEL_NAME).to(self.DEVICE)
         # Only fine tune the MLM head:
         if args.freeze_encoder:
             for param in self.model.base_model.parameters():
@@ -78,11 +78,11 @@ class BertAutoComplete(AutoComplete):
         suggestions = [word for word, score, d in suggestions]
         return suggestions
 
-    def topk(self, sent: str, k: int = 10) -> List:
+    def topk(self, sent: str, k_: int = 10) -> List:
         mask_idx = self.tokenizer.tokenize(sent).index('[MASK]') + 1
         out = self.model(torch.tensor(self.tokenizer.encode(sent)).int().to(self.DEVICE).unsqueeze(0))
         out = out['logits'].squeeze(0)[mask_idx, :].cpu()
-        scores, tokens = out.topk(k)
+        scores, tokens = out.topk(k_)
         # TODO: check output type(tensor?)
         return [(self.tokenizer.decode(tokens[i]), scores[i]) for i in range(len(scores))]
 
