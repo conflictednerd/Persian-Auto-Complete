@@ -263,9 +263,7 @@ class NGramAutoComplete(AutoComplete):
             last_word = test_tokens[
                 -2]  ## for example: <S> <S> As I was moving ahead occasionally I saw brief glimpses of beauty bea -> beauty is our last word, bea is passed for testing
             test_tokens[-2] = unfinished_word
-            reconstructed_sent = ''.join(x + ' ' for x in test_tokens[:-1])
-            completing_suggestions = self.complete(reconstructed_sent)
-            if last_word in completing_suggestions:
-                in_suggestions += 1
+            reconstructed_sent = ' '.join(test_tokens[:-1])
+            in_suggestions += last_word in self.complete(reconstructed_sent)
 
         return in_suggestions / len(self.test_dataset)
