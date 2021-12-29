@@ -47,60 +47,80 @@ class NGramAutoComplete(AutoComplete):
 
         self.unigrams = self.create_vocab(obj='train')
         self.vocab = nltk.FreqDist(self.unigrams)
-        self.model = self.train() if args.train else self.load() #if we don't want to train, we want to load the model, right?
+        self.model = self.train() if args.train else self.load()  # if we don't want to train, we want to load the model, right?
 
         if args.train:
             self.save()
 
     def load_prepared_data(self):
         s = ''
-        with open(os.path.join(self.TRAIN_DATA_PATH, 'train_ngram.txt'), 'r',  encoding='utf-8') as f:
+        with open(os.path.join(self.TRAIN_DATA_PATH, 'train.txt'), 'r', encoding='utf-8') as f:
             s += f.read()
-        self.train_dataset = s.split('\n')
+        self.train_dataset = self.init_cleaning(s.split('\n'))
         # print(self.train_dataset[0])
         # print(word_tokenize(self.train_dataset[0]))
 
         s = ''
-        with open(os.path.join(self.TRAIN_DATA_PATH, 'test_ngram.txt'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(self.TRAIN_DATA_PATH, 'test.txt'), 'r', encoding='utf-8') as f:
             s += f.read()
-        self.test_dataset = s.split('\n')
+        self.test_dataset = self.init_cleaning(s.split('\n'))
+        print(self.test_dataset[0].split(' ')[:-1])
+        # print(self.test_dataset[0])
+        # print(self.create_test(self.test_dataset[0]))
 
     def sentence_padding(self, sentences):
         sos = ' '.join([NGramAutoComplete.SOS] * (self.n - 1)) if self.n > 1 else NGramAutoComplete.SOS
         return ['{} {} {}'.format(sos, s, NGramAutoComplete.EOS) for s in sentences]
 
+    def init_cleaning(self, data):
+        final_data = []
+        for datum in data:
+            for sen in sent_tokenize(datum):
+                final_data.append(sen)
+        return self.sentence_padding(final_data)
+
+    def create_test(self, sent):
+        words_init = sent.split(' ')
+        sen_len = len(words_init)
+        word_idx = random.randint(1, sen_len) - 1
+        while len(words_init[word_idx]) <= 1:
+            word_idx = random.randint(1, sen_len) - 1
+        char_idx = random.randint(2, len(words_init[word_idx])) - 1
+        reconstructed_sent = ''.join(x + ' ' for x in words_init[:word_idx + 1])
+        reconstructed_sent += words_init[word_idx][:char_idx]
+        return reconstructed_sent
+
     def create_dataset(self, args):
-        normalizer = Normalizer()
         print('Creating dataset for training...')
         s = ''
         with open(os.path.join(self.TRAIN_DATA_PATH, 'data.txt'), 'r', encoding='utf-8') as f:
             s += self.clean(f.read()) if self.CLEANIFY else f.read()
         parags = s.split('\n')
         print('done reading and normalizing!')
-        parags = random.sample(parags, int(len(parags) / 80))
+        parags = random.sample(parags, int(len(parags) / 10))
         train_init, test_init = train_test_split(parags, test_size=args.test_size)
 
-        def init_cleaning(data):
-            final_data = []
-            for datum in data:
-                for sen in sent_tokenize(datum):
-                    final_data.append(sen)
-            return self.sentence_padding(final_data)
 
-        train = init_cleaning(train_init)
-        test = init_cleaning(test_init)
-        # print(train[0])
+        with open(os.path.join(self.TRAIN_DATA_PATH, 'train.txt'), 'w', encoding='utf-8') as f:
+            for i in range(len(train_init)):
+                f.write(train_init[i] + '\n')
+        #
+        with open(os.path.join(self.TRAIN_DATA_PATH, 'test.txt'), 'w', encoding='utf-8') as f:
+            for i in range(len(test_init)):
+                f.write(self.create_test(test_init[i]) + '\n')
+
+        self.train_dataset = self.init_cleaning(train_init)
+        self.test_dataset = self.init_cleaning(test_init)
+        print(self.test_dataset[0])
         # print(train[1])
 
-        self.train_dataset = train
-        self.test_dataset = test
-        with open(os.path.join(self.TRAIN_DATA_PATH, 'train_ngram.txt'), 'w', encoding='utf-8') as f:
-            for i in range(len(train)):
-                f.write(train[i] + '\n')
-        #
-        with open(os.path.join(self.TRAIN_DATA_PATH, 'test_ngram.txt'), 'w', encoding='utf-8') as f:
-            for i in range(len(test)):
-                f.write(test[i] + '\n')
+        # with open(os.path.join(self.TRAIN_DATA_PATH, 'train_ngram.txt'), 'w', encoding='utf-8') as f:
+        #     for i in range(len(train)):
+        #         f.write(train[i] + '\n')
+        # #
+        # with open(os.path.join(self.TRAIN_DATA_PATH, 'test_ngram.txt'), 'w', encoding='utf-8') as f:
+        #     for i in range(len(test)):
+        #         f.write(test[i] + '\n')
 
     def create_vocab(self, obj='train'):
         tokens = []
@@ -229,3 +249,23 @@ class NGramAutoComplete(AutoComplete):
         print('done training!')
         # print(Counter(self.unigrams).most_common(20))
         return all_dicts
+
+    def evaluate(self):
+        print("evaluating model on test data...")
+        in_suggestions = 0
+
+        for datum in self.test_dataset:
+            # print('hi')
+            # first_ = self.sentence_padding([datum])[0]
+            test_tokens = datum.split(' ')[:-1]  # dropping EOS
+            unfinished_word = test_tokens[
+                                  -1] + '...'  # last word is unfinished, the word before that is the finished word (ground truth)
+            last_word = test_tokens[
+                -2]  ## for example: <S> <S> As I was moving ahead occasionally I saw brief glimpses of beauty bea -> beauty is our last word, bea is passed for testing
+            test_tokens[-2] = unfinished_word
+            reconstructed_sent = ''.join(x + ' ' for x in test_tokens[:-1])
+            completing_suggestions = self.complete(reconstructed_sent)
+            if last_word in completing_suggestions:
+                in_suggestions += 1
+
+        return in_suggestions / len(self.test_dataset)
