@@ -76,6 +76,10 @@ class AutoComplete(ABC):
     def train(self):
         pass
 
+    @abstractmethod
+    def evaluate(self):
+        pass
+
     def clean(self, string: str) -> str:
         string = self.space_pattern.sub(" ", string)
         string = self.deleted_pattern.sub("", string)
