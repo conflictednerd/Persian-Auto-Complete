@@ -65,7 +65,6 @@ if __name__ == '__main__':
     else:
         print('No Training')
 
-    if args.model == 'ngram':
-        print(autocomplete.evaluate())
+    print(autocomplete.evaluate())
     while True:
         print(autocomplete.complete(input()))

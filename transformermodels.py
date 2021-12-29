@@ -2,11 +2,12 @@
 import math
 import os
 from typing import Dict, List, Tuple
-from multiprocess import set_start_method
 
 import torch
 from datasets import load_dataset
+from multiprocess import set_start_method
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 from transformers import AutoModelForMaskedLM  # Has MLM head
 from transformers import (AutoConfig, AutoTokenizer,
                           DataCollatorForLanguageModeling, Trainer,
@@ -69,7 +70,7 @@ class BertAutoComplete(AutoComplete):
                 break
         words = ['[MASK]' if '...' in word else word for word in words]
         sent = ' '.join(words)
-        suggestions = self.topk(sent, k=200)
+        suggestions = self.topk(sent, k_=30000)
         suggestions = [(word, score, self.prefix_distance(
             word, incomplete_word)) for word, score in suggestions]
         # Sort by prefix distance first and then score
@@ -80,7 +81,8 @@ class BertAutoComplete(AutoComplete):
 
     def topk(self, sent: str, k_: int = 10) -> List:
         mask_idx = self.tokenizer.tokenize(sent).index('[MASK]') + 1
-        out = self.model(torch.tensor(self.tokenizer.encode(sent)).int().to(self.DEVICE).unsqueeze(0))
+        out = self.model(torch.tensor(self.tokenizer.encode(
+            sent)).int().to(self.DEVICE).unsqueeze(0))
         out = out['logits'].squeeze(0)[mask_idx, :].cpu()
         scores, tokens = out.topk(k_)
         # TODO: check output type(tensor?)
@@ -193,17 +195,17 @@ class BertAutoComplete(AutoComplete):
     def evaluate(self):
         print("evaluating bert model on test data...")
         sentences = []
-        #TODO: clean up!
+        # TODO: clean up!
         with open('./data_train_test/validation.txt', 'r', encoding='utf-8') as f:
             sentences = f.readlines()
 
         sentences = [x.strip() for x in sentences]
         in_suggestions = 0
 
-        for sent in sentences:
+        for sent in tqdm(sentences):
             words = sent.split(' ')
             unfinished_word = words[-1] + '...'
-            last_word = words[-2] # ground truth
+            last_word = words[-2]  # ground truth
             words[-2] = unfinished_word
             reconstructed_sent = ' '.join(words[:-1])
             in_suggestions += last_word in self.complete(reconstructed_sent)

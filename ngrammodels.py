@@ -1,18 +1,19 @@
 from __future__ import unicode_literals
-from collections import Counter
-import numpy as np
-import pickle
+
 import math
-import nltk
-import itertools
 import os
-import string
-import re
-from typing import Dict, List, Tuple
-from hazm import *
+import pickle
 import random
-from autocomplete import AutoComplete
+from collections import Counter
+from typing import Dict, List, Tuple
+
+import nltk
+import numpy as np
+from hazm import *
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
+
+from autocomplete import AutoComplete
 
 
 class NGramAutoComplete(AutoComplete):
@@ -29,9 +30,6 @@ class NGramAutoComplete(AutoComplete):
         '''
         super().__init__()
 
-        # so that multi-processing with cuda is possible
-        # set_start_method('spawn')
-
         self.MODEL_NAME = 'ngram'
         self.MODEL_DIR = args.models_dir
         self.TRAIN_DATA_PATH = args.train_data_path
@@ -47,7 +45,8 @@ class NGramAutoComplete(AutoComplete):
 
         self.unigrams = self.create_vocab(obj='train')
         self.vocab = nltk.FreqDist(self.unigrams)
-        self.model = self.train() if args.train else self.load()  # if we don't want to train, we want to load the model, right?
+        # if we don't want to train, we want to load the model, right?
+        self.model = self.train() if args.train else self.load()
 
         if args.train:
             self.save()
@@ -57,19 +56,16 @@ class NGramAutoComplete(AutoComplete):
         with open(os.path.join(self.TRAIN_DATA_PATH, 'train.txt'), 'r', encoding='utf-8') as f:
             s += f.read()
         self.train_dataset = self.init_cleaning(s.split('\n'))
-        # print(self.train_dataset[0])
-        # print(word_tokenize(self.train_dataset[0]))
 
         s = ''
         with open(os.path.join(self.TRAIN_DATA_PATH, 'test.txt'), 'r', encoding='utf-8') as f:
             s += f.read()
         self.test_dataset = self.init_cleaning(s.split('\n'))
         print(self.test_dataset[0].split(' ')[:-1])
-        # print(self.test_dataset[0])
-        # print(self.create_test(self.test_dataset[0]))
 
     def sentence_padding(self, sentences):
-        sos = ' '.join([NGramAutoComplete.SOS] * (self.n - 1)) if self.n > 1 else NGramAutoComplete.SOS
+        sos = ' '.join([NGramAutoComplete.SOS] * (self.n - 1)
+                       ) if self.n > 1 else NGramAutoComplete.SOS
         return ['{} {} {}'.format(sos, s, NGramAutoComplete.EOS) for s in sentences]
 
     def init_cleaning(self, data):
@@ -86,7 +82,8 @@ class NGramAutoComplete(AutoComplete):
         while len(words_init[word_idx]) <= 1:
             word_idx = random.randint(1, sen_len) - 1
         char_idx = random.randint(2, len(words_init[word_idx])) - 1
-        reconstructed_sent = ''.join(x + ' ' for x in words_init[:word_idx + 1])
+        reconstructed_sent = ''.join(
+            x + ' ' for x in words_init[:word_idx + 1])
         reconstructed_sent += words_init[word_idx][:char_idx]
         return reconstructed_sent
 
@@ -98,8 +95,8 @@ class NGramAutoComplete(AutoComplete):
         parags = s.split('\n')
         print('done reading and normalizing!')
         parags = random.sample(parags, int(len(parags) / 10))
-        train_init, test_init = train_test_split(parags, test_size=args.test_size)
-
+        train_init, test_init = train_test_split(
+            parags, test_size=args.test_size)
 
         with open(os.path.join(self.TRAIN_DATA_PATH, 'train.txt'), 'w', encoding='utf-8') as f:
             for i in range(len(train_init)):
@@ -112,15 +109,6 @@ class NGramAutoComplete(AutoComplete):
         self.train_dataset = self.init_cleaning(train_init)
         self.test_dataset = self.init_cleaning(test_init)
         print(self.test_dataset[0])
-        # print(train[1])
-
-        # with open(os.path.join(self.TRAIN_DATA_PATH, 'train_ngram.txt'), 'w', encoding='utf-8') as f:
-        #     for i in range(len(train)):
-        #         f.write(train[i] + '\n')
-        # #
-        # with open(os.path.join(self.TRAIN_DATA_PATH, 'test_ngram.txt'), 'w', encoding='utf-8') as f:
-        #     for i in range(len(test)):
-        #         f.write(test[i] + '\n')
 
     def create_vocab(self, obj='train'):
         tokens = []
@@ -178,7 +166,8 @@ class NGramAutoComplete(AutoComplete):
         return suggestions
 
     def topk(self, sent: str, k_: int = 10):
-        sent = [NGramAutoComplete.SOS] * (max(1, self.n - 1)) + word_tokenize(sent)
+        sent = [NGramAutoComplete.SOS] * \
+            (max(1, self.n - 1)) + word_tokenize(sent)
         polished_sent = []
         for w in sent:
             if w in self.unigrams:
@@ -209,9 +198,6 @@ class NGramAutoComplete(AutoComplete):
                     return [(k_words[i], k_probs[i]) for i in range(len(k_words))]
         else:
             scores = {w: 0 for w in self.unigrams}
-            # print(len(self.unigrams))
-            # print(self.unigrams[:30])
-            # print('wwww')
             for m in reversed(range(1, self.n + 1)):
                 rel_score = math.pow(2, m)
                 candidates = list(((mgram[-1], prob) for mgram, prob in self.model[m].items() if
@@ -223,7 +209,8 @@ class NGramAutoComplete(AutoComplete):
                     probs = np.array([y for (x, y) in candidates])
                     probs = probs / np.sum(probs)
                     for i in range(len(words)):
-                        scores[words[i]] = scores[words[i]] + probs[i] * rel_score
+                        scores[words[i]] = scores[words[i]] + \
+                            probs[i] * rel_score
             words = list(scores.keys())
             for ill in ["<UNK>", "<S>", "</S>"]:
                 if ill in words:
@@ -239,7 +226,8 @@ class NGramAutoComplete(AutoComplete):
     def train(self):
         print(Counter(self.unigrams).most_common(20))
         num_tokens = len(self.unigrams)
-        unigram_dict = {(unigram,): count / num_tokens for unigram, count in self.vocab.items()}
+        unigram_dict = {(unigram,): count /
+                        num_tokens for unigram, count in self.vocab.items()}
         all_dicts = {1: unigram_dict}
 
         for i in range(self.n - 1):
@@ -247,21 +235,18 @@ class NGramAutoComplete(AutoComplete):
             print(i + 2)
             print("##########")
         print('done training!')
-        # print(Counter(self.unigrams).most_common(20))
         return all_dicts
 
     def evaluate(self):
-        print("evaluating model on test data...")
+        print("evaluating ngram model on test data...")
         in_suggestions = 0
 
-        for datum in self.test_dataset:
-            # print('hi')
-            # first_ = self.sentence_padding([datum])[0]
+        for datum in tqdm(self.test_dataset):
             test_tokens = datum.split(' ')[:-1]  # dropping EOS
             unfinished_word = test_tokens[
-                                  -1] + '...'  # last word is unfinished, the word before that is the finished word (ground truth)
+                -1] + '...'  # last word is unfinished, the word before that is the finished word (ground truth)
             last_word = test_tokens[
-                -2]  ## for example: <S> <S> As I was moving ahead occasionally I saw brief glimpses of beauty bea -> beauty is our last word, bea is passed for testing
+                -2]  # for example: <S> <S> As I was moving ahead occasionally I saw brief glimpses of beauty bea -> beauty is our last word, bea is passed for testing
             test_tokens[-2] = unfinished_word
             reconstructed_sent = ' '.join(test_tokens[:-1])
             in_suggestions += last_word in self.complete(reconstructed_sent)
