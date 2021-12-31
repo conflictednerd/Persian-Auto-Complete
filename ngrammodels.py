@@ -38,16 +38,19 @@ class NGramAutoComplete(AutoComplete):
         self.n = args.n
         self.mode = args.ngram_mode
         self.vocab = dict()
-        if not args.load_data:
+        if (not args.load_data) and args.train:
             self.create_dataset(args)
         else:
-            self.load_prepared_data()
-
-        self.unigrams = self.create_vocab(obj='train')
-        self.vocab = nltk.FreqDist(self.unigrams)
+            if args.load_data:
+               self.load_prepared_data()
+        
+        if args.load_data or args.train:
+          self.unigrams = self.create_vocab(obj='train')
+          self.vocab = nltk.FreqDist(self.unigrams)
         # if we don't want to train, we want to load the model, right?
         self.model = self.train() if args.train else self.load()
-
+        # self.test_dataset = []
+        # self.train_dataset = []
         if args.train:
             self.save()
 
@@ -76,6 +79,8 @@ class NGramAutoComplete(AutoComplete):
         return self.sentence_padding(final_data)
 
     def create_test(self, sent):
+        print("$$$")
+        print(len(sent))
         words_init = sent.split(' ')
         sen_len = len(words_init)
         word_idx = random.randint(1, sen_len) - 1
@@ -97,15 +102,19 @@ class NGramAutoComplete(AutoComplete):
         parags = random.sample(parags, int(len(parags) / 10))
         train_init, test_init = train_test_split(
             parags, test_size=args.test_size)
-
+        print('check point 1')
         with open(os.path.join(self.TRAIN_DATA_PATH, 'train.txt'), 'w', encoding='utf-8') as f:
             for i in range(len(train_init)):
-                f.write(train_init[i] + '\n')
-        #
+              if i % 10000 == 0:
+                print(i)
+              f.write(train_init[i] + '\n')
+        print('check point 2')
         with open(os.path.join(self.TRAIN_DATA_PATH, 'test.txt'), 'w', encoding='utf-8') as f:
             for i in range(len(test_init)):
-                f.write(self.create_test(test_init[i]) + '\n')
-
+              print(i)
+              if len(test_init[i]) > 1:
+                  f.write(self.create_test(test_init[i]) + '\n')
+        print('check point 3')
         self.train_dataset = self.init_cleaning(train_init)
         self.test_dataset = self.init_cleaning(test_init)
         print(self.test_dataset[0])
@@ -140,12 +149,18 @@ class NGramAutoComplete(AutoComplete):
         return {n_gram: smoothed_count(n_gram, count) for n_gram, count in m_vocab.items()}
 
     def load(self, dir_path: str = './models_dir/', name='ngram_model.pkl'):
+        with open(dir_path + "unigrams.pkl", 'rb') as f:
+            self.unigrams = pickle.load(f)
+
         with open(dir_path + name, 'rb') as f:
             return pickle.load(f)
+        
 
     def save(self, dir_path: str = './models_dir/', name='ngram_model.pkl'):
         with open(dir_path + name, 'wb') as f:
             pickle.dump(self.model, f, pickle.HIGHEST_PROTOCOL)
+        with open(dir_path + "unigrams.pkl", 'wb') as f:
+            pickle.dump(self.unigrams, f, pickle.HIGHEST_PROTOCOL)
 
     def complete(self, sent: str, num_suggestions: int = 5) -> List[str]:
         incomplete_word = ''
@@ -171,7 +186,7 @@ class NGramAutoComplete(AutoComplete):
         polished_sent = []
         for w in sent:
             if w in self.unigrams:
-                polished_sent.append(w)
+              polished_sent.append(w)
             else:
                 polished_sent.append("<UNK>")
         sen_len = len(polished_sent)
@@ -197,7 +212,7 @@ class NGramAutoComplete(AutoComplete):
                     k_probs = probs[idx.astype(int)]
                     return [(k_words[i], k_probs[i]) for i in range(len(k_words))]
         else:
-            scores = {w: 0 for w in self.unigrams}
+            scores = {w: 0 for w in self.unigrams} #todo: clean
             for m in reversed(range(1, self.n + 1)):
                 rel_score = math.pow(2, m)
                 candidates = list(((mgram[-1], prob) for mgram, prob in self.model[m].items() if
