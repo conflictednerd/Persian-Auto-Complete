@@ -253,17 +253,25 @@ class NGramAutoComplete(AutoComplete):
         return all_dicts
 
     def evaluate(self):
-        print("evaluating ngram model on test data...")
+        print("evaluating model on test data...")
         in_suggestions = 0
 
+        s = ''
+        with open(os.path.join('./data_train_test/', 'validation.txt'), 'r', encoding='utf-8') as f:
+            s += f.read()
+        self.test_dataset = self.init_cleaning(s.split('\n'))
+
         for datum in tqdm(self.test_dataset):
+            # print('hi')
+            # first_ = self.sentence_padding([datum])[0]
             test_tokens = datum.split(' ')[:-1]  # dropping EOS
             unfinished_word = test_tokens[
-                -1] + '...'  # last word is unfinished, the word before that is the finished word (ground truth)
+                                  -1] + '...'  # last word is unfinished, the word before that is the finished word (ground truth)
             last_word = test_tokens[
-                -2]  # for example: <S> <S> As I was moving ahead occasionally I saw brief glimpses of beauty bea -> beauty is our last word, bea is passed for testing
+                -2]  ## for example: <S> <S> As I was moving ahead occasionally I saw brief glimpses of beauty bea -> beauty is our last word, bea is passed for testing
             test_tokens[-2] = unfinished_word
-            reconstructed_sent = ' '.join(test_tokens[:-1])
-            in_suggestions += last_word in self.complete(reconstructed_sent)
-
+            reconstructed_sent = ''.join(x + ' ' for x in test_tokens[:-1])
+            completing_suggestions = self.complete(reconstructed_sent)
+            if last_word in completing_suggestions:
+                in_suggestions += 1
         return in_suggestions / len(self.test_dataset)
