@@ -104,7 +104,6 @@ class NGramAutoComplete(AutoComplete):
         
         with open(os.path.join(self.TRAIN_DATA_PATH, 'train.txt'), 'w', encoding='utf-8') as f:
             for i in range(len(train_init)):
-              if i % 10000 == 0:
                 
               f.write(train_init[i] + '\n')
         
