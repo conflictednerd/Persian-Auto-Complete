@@ -79,8 +79,7 @@ class NGramAutoComplete(AutoComplete):
         return self.sentence_padding(final_data)
 
     def create_test(self, sent):
-        print("$$$")
-        print(len(sent))
+        
         words_init = sent.split(' ')
         sen_len = len(words_init)
         word_idx = random.randint(1, sen_len) - 1
@@ -102,22 +101,22 @@ class NGramAutoComplete(AutoComplete):
         parags = random.sample(parags, int(len(parags) / 10))
         train_init, test_init = train_test_split(
             parags, test_size=args.test_size)
-        print('check point 1')
+        
         with open(os.path.join(self.TRAIN_DATA_PATH, 'train.txt'), 'w', encoding='utf-8') as f:
             for i in range(len(train_init)):
               if i % 10000 == 0:
-                print(i)
+                
               f.write(train_init[i] + '\n')
-        print('check point 2')
+        
         with open(os.path.join(self.TRAIN_DATA_PATH, 'test.txt'), 'w', encoding='utf-8') as f:
             for i in range(len(test_init)):
-              print(i)
+              
               if len(test_init[i]) > 1:
                   f.write(self.create_test(test_init[i]) + '\n')
-        print('check point 3')
+        
         self.train_dataset = self.init_cleaning(train_init)
         self.test_dataset = self.init_cleaning(test_init)
-        print(self.test_dataset[0])
+        
 
     def create_vocab(self, obj='train'):
         tokens = []
